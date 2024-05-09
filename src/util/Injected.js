@@ -13,7 +13,15 @@ exports.ExposeStore = (moduleRaidStr) => {
     window.Store = {};
 	
     if (isComet) {
-        window.Store.Chat = window.mR.findModule('Chat')[1].Chat;
+        const module = window.mR.findModule('Chat')
+        if (module[1].Chat && module[1].Chat.on) {
+            window.Store.Chat = module[1].Chat
+        } else if (module[2].Chat && module[2].Chat.on) {
+            window.Store.Chat = module[2].Chat
+        } else {
+            throw new Error('Chat module not found')
+        }
+        // window.Store.Chat = window.mR.findModule('Chat')[1].Chat;
     } else {
         window.Store.Chat = window.mR.findModule(m => m.default && m.default.Chat)[0].default.Chat;
     }
@@ -45,7 +53,14 @@ exports.ExposeStore = (moduleRaidStr) => {
     }
 	
     if (isComet) {
-	    window.Store.Contact = window.mR.findModule('Contact')[0].Contact;
+        const module = window.mR.findModule('Contact')
+        if (module[0].Contact && module[0].Contact.on) {
+            window.Store.Contact = module[0].Contact
+        } else if (module[1].Contact && module[1].Contact.on) {
+            window.Store.Contact = module[1].Contact
+        } else {
+            throw new Error('module Contact not found')
+        }
     }
 	
     window.Store.Label = window.mR.findModule('LabelCollection')[0].LabelCollection;
