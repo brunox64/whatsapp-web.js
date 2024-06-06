@@ -2,161 +2,174 @@
 
 // Exposes the internal Store to the WhatsApp Web client
 exports.ExposeStore = (moduleRaidStr) => {
-    const isComet = parseInt(window.Debug?.VERSION?.split(".")?.[1]) >= 3000;
-
-    console.warn('version:%s', window.Debug?.VERSION)
-
+    
     eval('var moduleRaid = ' + moduleRaidStr);
+
     // eslint-disable-next-line no-undef
     window.mR = moduleRaid();
+    
     //window.Store = Object.assign({}, window.mR.findModule(m => m.default && m.default.Chat)[0].default);
     window.Store = {};
-	
-    if (isComet) {
-        const module = window.mR.findModule('Chat')
-        if (module[1].Chat && module[1].Chat.on) {
-            window.Store.Chat = module[1].Chat
-        } else if (module[2].Chat && module[2].Chat.on) {
-            window.Store.Chat = module[2].Chat
+
+    function findModuleObject(key) {
+        const modules = window.mR.findModule(m => Array.from(Object.entries(m.default || m)).some(kv => kv[0] === key && typeof kv[1] !== 'function'))
+
+        if (modules[0] && modules[0][key]) {
+            return modules[0][key]
         } else {
-            throw new Error('Chat module not found')
+            throw new Error(key + ' module not found')
         }
-        // window.Store.Chat = window.mR.findModule('Chat')[1].Chat;
-    } else {
-        window.Store.Chat = window.mR.findModule(m => m.default && m.default.Chat)[0].default.Chat;
-    }
-	
-    window.Store.AppState = window.mR.findModule('Socket')[0].Socket;
-    window.Store.Conn = window.mR.findModule('Conn')[0].Conn;
-    window.Store.BlockContact = window.mR.findModule('blockContact')[0];
-	
-    if (isComet) {
-        window.Store.Call = window.mR.findModule('Call')[0].Call;
-    } else {
-        window.Store.Call = window.mR.findModule((module) => module.default && module.default.Call)[0].default.Call;
-    }
-	
-    window.Store.Cmd = window.mR.findModule('Cmd')[0].Cmd;
-    window.Store.CryptoLib = window.mR.findModule('decryptE2EMedia')[0];
-    window.Store.DownloadManager = window.mR.findModule('downloadManager')[0].downloadManager;
-	
-    if (isComet) {
-        window.Store.GroupMetadata = window.mR.findModule('GroupMetadata')[0].GroupMetadata;
-    } else {
-        window.Store.GroupMetadata = window.mR.findModule('GroupMetadata')[0].default.GroupMetadata;
     }
 
-    if (isComet) {
-        window.Store.GroupMetadata.queryAndUpdate = window.mR.findModule('queryAndUpdateGroupMetadataById')[0].queryAndUpdateGroupMetadataById;
-    } else {
-        window.Store.GroupMetadata.queryAndUpdate = window.mR.findModule('queryAndUpdateGroupMetadataById')[0].queryAndUpdateGroupMetadataById;
-    }
-	
-    if (isComet) {
-        const module = window.mR.findModule('Contact')
-        if (module[0].Contact && module[0].Contact.on) {
-            window.Store.Contact = module[0].Contact
-        } else if (module[1].Contact && module[1].Contact.on) {
-            window.Store.Contact = module[1].Contact
+    function findModuleFunction(key) {
+        let modules = window.mR.findModule(key).filter(m => (typeof m === 'function') || (m.default && typeof m.default === 'function'))
+
+        if (modules[0] && modules[0].default) {
+            return modules[0].default
+        } else if (modules[0]) {
+            return modules[0]
+        }
+        
+        modules = window.mR.findModule(m => Array.from(Object.entries(m.default || m)).some(kv => kv[0] === key && typeof kv[1] === 'function'))
+
+        if (modules[0] && modules[0].default && modules[0].default[key]) {
+            return modules[0].default[key]
+        } else if (modules[0] && modules[0][key]) {
+            return modules[0][key]
         } else {
-            throw new Error('module Contact not found')
+            throw new Error(key + ' module function not found')
         }
     }
-	
-    window.Store.Label = window.mR.findModule('LabelCollection')[0].LabelCollection;
-    window.Store.ContactCollection = window.mR.findModule('ContactCollection')[0].ContactCollection;
-    window.Store.MediaPrep = window.mR.findModule('prepRawMedia')[0];
-    window.Store.MediaObject = window.mR.findModule('getOrCreateMediaObject')[0];
-    window.Store.NumberInfo = window.mR.findModule('formattedPhoneNumber')[0];
-    window.Store.MediaTypes = window.mR.findModule('msgToMediaType')[0];
-    window.Store.MediaUpload = window.mR.findModule('uploadMedia')[0];
-	
-    if (isComet) {
-        window.Store.MsgKey = window.mR.findModule('fromString')[0];
-    } else {
-        window.Store.MsgKey = window.mR.findModule((module) => module.default && module.default.fromString)[0].default;
+
+    function findModuleObjectByFunction(key) {
+        const modules = window.mR.findModule(m => Array.from(Object.entries(m.default || m)).some(kv => kv[0] === key && typeof kv[1] === 'function'))
+
+        if (modules[0] && modules[0].default && modules[0].default[key]) {
+            return modules[0].default
+        } else if (modules[0] && modules[0][key]) {
+            return modules[0]
+        } else {
+            throw new Error(key + ' module function not found')
+        }
     }
+
+    window.Store.Chat = findModuleObject('Chat')
+
+    window.Store.AppState = findModuleObject('Socket')
+    window.Store.Conn = findModuleObject('Conn')
+    window.Store.BlockContact = findModuleObjectByFunction('blockContact')
 	
-    if (isComet) {
-        window.Store.Msg = window.mR.findModule('Msg')[1].Msg;
+    window.Store.Call = findModuleObject('Call')
+	
+    window.Store.Cmd = findModuleObject('Cmd')
+
+    try {
+        window.Store.CryptoLib = {
+            decryptE2EMedia: findModuleFunction('decryptE2EMedia')
+        }
+    } catch (e) {
+        window.Store.CryptoLib = {
+            decryptE2EMedia: findModuleFunction('decryptE2EPayload')
+        }
     }
+    
+    window.Store.DownloadManager = findModuleObject('downloadManager')
 	
-    if (isComet) {
-        window.Store.OpaqueData = window.mR.findModule('createFromData')[0];
-    } else {
-        window.Store.OpaqueData = window.mR.findModule(module => module.default && module.default.createFromData)[0].default;
+    window.Store.GroupMetadata = findModuleObject('GroupMetadata')
+
+    window.Store.GroupMetadata.queryAndUpdate = findModuleFunction('queryAndUpdateGroupMetadataById')
+
+    window.Store.Contact = findModuleObject('Contact')
+	if (!window.Store.Contact.find) {
+		window.Store.Contact = findModuleObject('ContactCollection')
+	}
+	
+    window.Store.Label = findModuleObject('LabelCollection')
+    window.Store.ContactCollection = findModuleObject('ContactCollection')
+    window.Store.MediaPrep = findModuleObjectByFunction('prepRawMedia')
+    window.Store.MediaObject = findModuleObjectByFunction('getOrCreateMediaObject')
+    window.Store.NumberInfo = findModuleObjectByFunction('formattedPhoneNumber')
+    window.Store.MediaTypes = findModuleObjectByFunction('msgToMediaType')
+    window.Store.MediaUpload = findModuleObjectByFunction('uploadMedia')
+	
+    window.Store.MsgKey = findModuleObjectByFunction('fromString')
+    
+    window.Store.Msg = findModuleObject('Msg')
+	
+    window.Store.OpaqueData = findModuleObjectByFunction('createFromData')
+	
+    window.Store.QueryProduct = findModuleObjectByFunction('queryProduct')
+    window.Store.QueryOrder = findModuleObjectByFunction('queryOrder')
+    window.Store.SendClear = findModuleObjectByFunction('sendClear')
+    window.Store.SendDelete = findModuleObjectByFunction('sendDelete')
+    window.Store.SendMessage = findModuleObjectByFunction('addAndSendMsgToChat')
+    window.Store.EditMessage = findModuleObjectByFunction('addAndSendMessageEdit')
+    window.Store.SendSeen = findModuleObjectByFunction('sendSeen')
+
+    window.Store.User = findModuleObjectByFunction('getMaybeMeUser')
+
+    window.Store.ContactMethods = findModuleObjectByFunction('getUserid')
+    window.Store.BusinessProfileCollection = findModuleObject('BusinessProfileCollection')
+	
+    // só é utilizado quando enviamos mensagens com Sticker
+    // window.Store.UploadUtils = findModuleObjectByFunction('encryptAndUpload')
+    window.Store.UploadUtils = { encryptAndUpload: function(){ throw new Error('não implementado')} }
+
+    try {
+        window.Store.UserConstructor = findModuleObjectByFunction('isServer')
+    } catch (e) {
+        window.Store.UserConstructor = findModuleObjectByFunction('isUser')
     }
-	
-    window.Store.QueryProduct = window.mR.findModule('queryProduct')[0];
-    window.Store.QueryOrder = window.mR.findModule('queryOrder')[0];
-    window.Store.SendClear = window.mR.findModule('sendClear')[0];
-    window.Store.SendDelete = window.mR.findModule('sendDelete')[0];
-    window.Store.SendMessage = window.mR.findModule('addAndSendMsgToChat')[0];
-    window.Store.EditMessage = window.mR.findModule('addAndSendMessageEdit')[0];
-    window.Store.SendSeen = window.mR.findModule('sendSeen')[0];
-    window.Store.User = window.mR.findModule('getMaybeMeUser')[0];
-    window.Store.ContactMethods = window.mR.findModule('getUserid')[0];
-    window.Store.BusinessProfileCollection = window.mR.findModule('BusinessProfileCollection')[0].BusinessProfileCollection;
-	
-    if (isComet) {
-        window.Store.UploadUtils = window.mR.findModule('encryptAndUpload')[0].encryptAndUpload;
-    } else {
-        window.Store.UploadUtils = window.mR.findModule((module) => (module.default && module.default.encryptAndUpload) ? module.default : null)[0].default;
+
+    window.Store.Validators = findModuleObjectByFunction('findLinks')
+    window.Store.VCard = findModuleObjectByFunction('vcardFromContactModel')
+    
+    window.Store.WidFactory = findModuleObjectByFunction('createWid')
+
+    window.Store.ProfilePic = findModuleObjectByFunction('profilePicResync')
+    window.Store.PresenceUtils = findModuleObjectByFunction('sendPresenceAvailable')
+    window.Store.ChatState = findModuleObjectByFunction('sendChatStateComposing')
+    window.Store.findCommonGroups = findModuleFunction('findCommonGroups')
+    window.Store.StatusUtils = findModuleObjectByFunction('setMyStatus')
+    window.Store.ConversationMsgs = findModuleObjectByFunction('loadEarlierMsgs')
+    window.Store.sendReactionToMsg = findModuleFunction('sendReactionToMsg')
+    window.Store.createOrUpdateReactionsModule = findModuleObjectByFunction('createOrUpdateReactions')
+    window.Store.EphemeralFields = findModuleObjectByFunction('getEphemeralFields')
+    window.Store.MsgActionChecks = findModuleObjectByFunction('canSenderRevokeMsg')
+    window.Store.QuotedMsg = findModuleObjectByFunction('getQuotedMsgObj')
+    window.Store.LinkPreview = findModuleObjectByFunction('getLinkPreview')
+    window.Store.Socket = findModuleObjectByFunction('deprecatedSendIq')
+    window.Store.SocketWap = findModuleObjectByFunction('wap')
+    window.Store.SearchContext = findModuleObjectByFunction('getSearchContext')
+    window.Store.DrawerManager = findModuleObject('DrawerManager')
+    window.Store.LidUtils = findModuleObjectByFunction('getCurrentLid')
+    window.Store.WidToJid = findModuleObjectByFunction('widToUserJid')
+    window.Store.JidToWid = findModuleObjectByFunction('userJidToUserWid')
+
+    try {
+        window.Store.getMsgInfo = findModuleFunction('sendQueryMsgInfo')
+    } catch (e) {
+        window.Store.getMsgInfo = findModuleFunction('queryMsgInfo')
     }
-	
-    if (isComet) {
+
+    window.Store.pinUnpinMsg = findModuleFunction('sendPinInChatMsg')
+    
+    try {
+        window.Store.QueryExist = findModuleFunction('queryWidExists')
+    } catch (e) {
         try {
-            window.Store.UserConstructor = window.mR.findModule((module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null)[0].default;
+            window.Store.QueryExist = findModuleFunction('queryWidExist')
         } catch (e) {
             try {
-                window.Store.UserConstructor = window.mR.findModule('isServer')[0].isServer;
-            } catch (e2) {
-                try {
-                    window.Store.UserConstructor = window.mR.findModule('isUser')[0].isUser;
-                } catch (e3) {
-                    let checkType = window.mR.findModule((module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser))[0].default
-                    if (checkType.isServer) {
-                        window.Store.UserConstructor = checkType.isServer
-                    } else if (checkType.isUser) {
-                        window.Store.UserConstructor = checkType.isUser
-                    }
-                }
+                window.Store.QueryExist = findModuleFunction('queryExists')
+            } catch (e) {
+                window.Store.QueryExist = findModuleFunction('queryExist')
             }
         }
-    } else {
-        window.Store.UserConstructor = window.mR.findModule((module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null)[0].default;
     }
-	
-    window.Store.Validators = window.mR.findModule('findLinks')[0];
-    window.Store.VCard = window.mR.findModule('vcardFromContactModel')[0];
-    window.Store.WidFactory = window.mR.findModule('createWid')[0];
-    window.Store.ProfilePic = window.mR.findModule('profilePicResync')[0];
-    window.Store.PresenceUtils = window.mR.findModule('sendPresenceAvailable')[0];
-    window.Store.ChatState = window.mR.findModule('sendChatStateComposing')[0];
-    window.Store.findCommonGroups = window.mR.findModule('findCommonGroups')[0].findCommonGroups;
-    window.Store.StatusUtils = window.mR.findModule('setMyStatus')[0];
-    window.Store.ConversationMsgs = window.mR.findModule('loadEarlierMsgs')[0];
-    window.Store.sendReactionToMsg = window.mR.findModule('sendReactionToMsg')[0].sendReactionToMsg;
-    window.Store.createOrUpdateReactionsModule = window.mR.findModule('createOrUpdateReactions')[0];
-    window.Store.EphemeralFields = window.mR.findModule('getEphemeralFields')[0];
-    window.Store.MsgActionChecks = window.mR.findModule('canSenderRevokeMsg')[0];
-    window.Store.QuotedMsg = window.mR.findModule('getQuotedMsgObj')[0];
-    window.Store.LinkPreview = window.mR.findModule('getLinkPreview')[0];
-    window.Store.Socket = window.mR.findModule('deprecatedSendIq')[0];
-    window.Store.SocketWap = window.mR.findModule('wap')[0];
-    window.Store.SearchContext = window.mR.findModule('getSearchContext')[0].getSearchContext;
-    window.Store.DrawerManager = window.mR.findModule('DrawerManager')[0].DrawerManager;
-    window.Store.LidUtils = window.mR.findModule('getCurrentLid')[0];
-    window.Store.WidToJid = window.mR.findModule('widToUserJid')[0];
-    window.Store.JidToWid = window.mR.findModule('userJidToUserWid')[0];
-    window.Store.getMsgInfo = (window.mR.findModule('sendQueryMsgInfo')[0] || {}).sendQueryMsgInfo || window.mR.findModule('queryMsgInfo')[0].queryMsgInfo;
-    window.Store.pinUnpinMsg = window.mR.findModule('sendPinInChatMsg')[0].sendPinInChatMsg;
     
-    /* eslint-disable no-undef, no-cond-assign */
-    window.Store.QueryExist = ((m = window.mR.findModule('queryExists')[0]) ? m.queryExists : window.mR.findModule('queryExist')[0].queryWidExists);
-    window.Store.ReplyUtils = (m = window.mR.findModule('canReplyMsg')).length > 0 && m[0];
-    /* eslint-enable no-undef, no-cond-assign */
-
+    window.Store.ReplyUtils = findModuleObjectByFunction('canReplyMsg')
+    
     window.Store.Settings = {
         ...window.mR.findModule('ChatlistPanelState')[0],
         setPushname: window.mR.findModule((m) => m.setPushname && !m.ChatlistPanelState)[0].setPushname
