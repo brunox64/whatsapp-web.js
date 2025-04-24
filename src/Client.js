@@ -189,7 +189,7 @@ class Client extends EventEmitter {
             }
         );
 
-        const INTRO_IMG_SELECTOR = '[data-icon="search"], [data-icon="wds-smb-ill-start-a-chat"]';
+        const INTRO_IMG_SELECTOR = '[data-icon="search"], [data-icon="wds-smb-ill-start-a-chat"], [data-icon="intro-md-beta-logo-light"]';
         const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
 
         // Checks which selector appears first
