@@ -53,6 +53,24 @@ exports.ExposeStore = (moduleRaidStr) => {
         }
     }
 
+    // utilizar esta função para descobrir modulos que mudaram de nome
+    function customFind(name) {
+        window.modules.forEach(m => { 
+            let d = require(m); 
+            if (m.includes(name)) {
+                console.log('1', m);
+            } else if (typeof d === 'function' && d.name.includes(name)) { 
+                console.log('2', m);
+            } else if (typeof d === 'object' && typeof d.default === 'function' && d.default.name.includes(name)) {
+                console.log('3', m);
+            } else if (typeof d === 'object' && Object.keys(d).find(k => k.includes(name))) {
+                console.log('4', m);
+            } else if (typeof d === 'object' && typeof d.default === 'object' && Object.keys(d.default).find(k => k.includes(name))) {
+                console.log('5', m);
+            }
+        })
+    }
+
     window.Store.Chat = findModuleObject('Chat')
 
     window.Store.AppState = findModuleObject('Socket')
@@ -106,10 +124,17 @@ exports.ExposeStore = (moduleRaidStr) => {
     window.Store.EditMessage = findModuleObjectByFunction('addAndSendMessageEdit')
     window.Store.SendSeen = findModuleObjectByFunction('sendSeen')
 
-    window.Store.User = findModuleObjectByFunction('getMaybeMeUser')
+    // window.Store.User = findModuleObjectByFunction('getMaybeMeUser')
+    window.Store.User = findModuleObjectByFunction('getMaybeMePnUser')
+    window.Store.User.getMaybeMeUser = window.Store.User.getMaybeMePnUser
+    window.Store.User.getMeUser = window.Store.User.getMaybeMePnUser
 
     window.Store.ContactMethods = findModuleObjectByFunction('getUserid')
-    window.Store.BusinessProfileCollection = findModuleObject('BusinessProfileCollection')
+
+    try {
+        window.Store.BusinessProfileCollection = findModuleObject('BusinessProfileCollection') // faltou
+    } catch (e) {
+    }
 	
     // só é utilizado quando enviamos mensagens com Sticker
     // window.Store.UploadUtils = findModuleObjectByFunction('encryptAndUpload')
@@ -141,7 +166,12 @@ exports.ExposeStore = (moduleRaidStr) => {
     window.Store.Socket = findModuleObjectByFunction('deprecatedSendIq')
     window.Store.SocketWap = findModuleObjectByFunction('wap')
     window.Store.SearchContext = findModuleObjectByFunction('getSearchContext')
-    window.Store.DrawerManager = findModuleObject('DrawerManager')
+
+    try {
+        window.Store.DrawerManager = findModuleObject('DrawerManager') // faltou
+    } catch (e) {
+    }
+    
     window.Store.LidUtils = findModuleObjectByFunction('getCurrentLid')
     window.Store.WidToJid = findModuleObjectByFunction('widToUserJid')
     window.Store.JidToWid = findModuleObjectByFunction('userJidToUserWid')
@@ -170,35 +200,43 @@ exports.ExposeStore = (moduleRaidStr) => {
     
     window.Store.ReplyUtils = findModuleObjectByFunction('canReplyMsg')
     
-    window.Store.Settings = {
-        ...window.mR.findModule('ChatlistPanelState')[0],
-        setPushname: window.mR.findModule((m) => m.setPushname && !m.ChatlistPanelState)[0].setPushname
-    };
+    // window.Store.Settings = {
+    //     ...findModuleObjectByFunction('ChatlistPanelState'),
+    //     setPushname: findModuleObjectByFunction('ChatlistPanelState').setPushname
+    // };
+
+    window.Store.Settings = findModuleObjectByFunction('setPushname');
+
     window.Store.StickerTools = {
-        ...window.mR.findModule('toWebpSticker')[0],
-        ...window.mR.findModule('addWebpMetadata')[0]
+        ...findModuleObjectByFunction('toWebpSticker'),
+        ...findModuleObjectByFunction('addWebpMetadata')
     };
+
     window.Store.GroupUtils = {
-        ...window.mR.findModule('createGroup')[0],
-        ...window.mR.findModule('setGroupDescription')[0],
-        ...window.mR.findModule('sendExitGroup')[0],
-        ...window.mR.findModule('sendSetPicture')[0]
+        ...findModuleObjectByFunction('createGroup'),
+        ...findModuleObjectByFunction('setGroupDescription'),
+        ...findModuleObjectByFunction('sendExitGroup'),
+        ...findModuleObjectByFunction('sendSetPicture')
     };
+
     window.Store.GroupParticipants = {
-        ...window.mR.findModule('promoteParticipants')[0],
-        ...window.mR.findModule('sendAddParticipantsRPC')[0]
+        ...findModuleObjectByFunction('promoteParticipants'),
+        ...findModuleObjectByFunction('sendAddParticipantsRPC')
     };
+
     window.Store.GroupInvite = {
-        ...window.mR.findModule('resetGroupInviteCode')[0],
-        ...window.mR.findModule('queryGroupInvite')[0]
+        ...findModuleObjectByFunction('resetGroupInviteCode'),
+        ...findModuleObjectByFunction('queryGroupInvite')
     };
+
     window.Store.GroupInviteV4 = {
-        ...window.mR.findModule('queryGroupInviteV4')[0],
-        ...window.mR.findModule('sendGroupInviteMessage')[0]
+        ...findModuleObjectByFunction('queryGroupInviteV4'),
+        ...findModuleObjectByFunction('sendGroupInviteMessage')
     };
+
     window.Store.MembershipRequestUtils = {
-        ...window.mR.findModule('getMembershipApprovalRequests')[0],
-        ...window.mR.findModule('sendMembershipRequestsActionRPC')[0]
+        ...findModuleObjectByFunction('getMembershipApprovalRequests'),
+        ...findModuleObjectByFunction('sendMembershipRequestsActionRPC')
     };
 
     if (!window.Store.Chat._find) {
@@ -211,19 +249,29 @@ exports.ExposeStore = (moduleRaidStr) => {
     }
     
     // eslint-disable-next-line no-undef
-    if ((m = window.mR.findModule('ChatCollection')[0]) && m.ChatCollection && typeof m.ChatCollection.findImpl === 'undefined' && typeof m.ChatCollection._find !== 'undefined') m.ChatCollection.findImpl = m.ChatCollection._find;
+    if ((m = findModuleObject('ChatCollection')) && m.ChatCollection && typeof m.ChatCollection.findImpl === 'undefined' && typeof m.ChatCollection._find !== 'undefined') {
+        m.ChatCollection.findImpl = m.ChatCollection._find
+    }
 
-    const _isMDBackend = window.mR.findModule('isMDBackend');
-    if(_isMDBackend && _isMDBackend[0] && _isMDBackend[0].isMDBackend) {
-        window.Store.MDBackend = _isMDBackend[0].isMDBackend();
-    } else {
+    try {
+        const _isMDBackend = findModuleObjectByFunction('isMDBackend');
+        if(_isMDBackend && _isMDBackend[0] && _isMDBackend[0].isMDBackend) {
+            window.Store.MDBackend = _isMDBackend[0].isMDBackend();
+        } else {
+            window.Store.MDBackend = true;
+        }
+    } catch (e) {
         window.Store.MDBackend = true;
     }
 
-    const _features = window.mR.findModule('FEATURE_CHANGE_EVENT')[0];
-    if(_features) {
-        window.Store.Features = _features.LegacyPhoneFeatures;
+    try {
+        const _features = findModuleObjectByFunction('FEATURE_CHANGE_EVENT');
+        if(_features) {
+            window.Store.Features = _features.LegacyPhoneFeatures;
+        }
+    } catch (e) {
     }
+    
 
     /**
      * Target options object description
@@ -779,8 +827,12 @@ exports.LoadUtils = () => {
     window.WWebJS.getContact = async contactId => {
         const wid = window.Store.WidFactory.createWid(contactId);
         const contact = await window.Store.Contact.find(wid);
-        const bizProfile = await window.Store.BusinessProfileCollection.fetchBizProfile(wid);
-        bizProfile.profileOptions && (contact.businessProfile = bizProfile);
+
+        if (window.Store.BusinessProfileCollection) {
+            const bizProfile = await window.Store.BusinessProfileCollection.fetchBizProfile(wid);
+            bizProfile.profileOptions && (contact.businessProfile = bizProfile);
+        }
+        
         return window.WWebJS.getContactModel(contact);
     };
 
