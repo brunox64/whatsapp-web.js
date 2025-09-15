@@ -249,8 +249,54 @@ exports.ExposeStore = (moduleRaidStr) => {
     }
     
     // eslint-disable-next-line no-undef
-    if ((m = findModuleObject('ChatCollection')) && m.ChatCollection && typeof m.ChatCollection.findImpl === 'undefined' && typeof m.ChatCollection._find !== 'undefined') {
-        m.ChatCollection.findImpl = m.ChatCollection._find
+    // if ((m = findModuleObject('ChatCollection')) && m.ChatCollection && typeof m.ChatCollection.findImpl === 'undefined' && typeof m.ChatCollection._find !== 'undefined') {
+    //     m.ChatCollection.findImpl = m.ChatCollection._find
+    // }
+
+    let chatCollection = null;
+    try {
+        chatCollection = findModuleObject('ChatCollection');
+    } catch (e) {
+    }
+
+    let businessCollection = null;
+    try {
+        businessCollection = findModuleObject('BusinessProfileCollection');
+    } catch (e) {
+    }
+
+    if (chatCollection && typeof chatCollection.findImpl === 'function' && !chatCollection._find) {
+        chatCollection._find = chatCollection.findImpl
+    }
+
+    if (chatCollection && typeof chatCollection._find === 'function' && !chatCollection.findImpl) {
+        chatCollection.findImpl = chatCollection._find
+    }
+
+    if (businessCollection && typeof businessCollection.findImpl === 'function' && !businessCollection._find) {
+        businessCollection._find = businessCollection.findImpl
+    }
+
+    if (businessCollection && typeof businessCollection._find === 'function' && !businessCollection.findImpl) {
+        businessCollection.findImpl = businessCollection._find
+    }
+
+    if (chatCollection && businessCollection) {
+        if (chatCollection.findImpl && !businessCollection.findImpl) {
+            businessCollection.findImpl = chatCollection.findImpl
+        }
+
+        if (chatCollection._find && !businessCollection._find) {
+            businessCollection._find = chatCollection._find
+        }
+
+        if (businessCollection.findImpl && !chatCollection.findImpl) {
+            chatCollection.findImpl = businessCollection.findImpl
+        }
+
+        if (businessCollection._find && !chatCollection._find) {
+            chatCollection._find = businessCollection._find
+        }
     }
 
     try {
